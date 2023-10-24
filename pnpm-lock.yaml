@@ -6,6 +6,7 @@ specifiers:
   '@types/node-telegram-bot-api': ^0.61.11
   '@typescript-eslint/eslint-plugin': ^6.8.0
   '@typescript-eslint/parser': ^6.8.0
+  '@vercel/ncc': ^0.38.1
   axios: ^1.5.1
   dotenv: ^16.3.1
   eslint: ^8.52.0
@@ -32,6 +33,7 @@ devDependencies:
   '@types/node-telegram-bot-api': 0.61.11
   '@typescript-eslint/eslint-plugin': 6.8.0_xmlw7ciba4dhvvbsnhnqmsoya4
   '@typescript-eslint/parser': 6.8.0_i3vkbg2fztj7jno7sh3heeojya
+  '@vercel/ncc': 0.38.1
   eslint: 8.52.0
   eslint-config-standard-with-typescript: 39.1.1_c4zetg6uhk2x6fsbcqs4r2osim
   eslint-plugin-import: 2.29.0_pklsczl6bgctlw4ojblzy73j44
@@ -876,6 +878,11 @@ packages:
 
   /@ungap/structured-clone/1.2.0:
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
+    dev: true
+
+  /@vercel/ncc/0.38.1:
+    resolution: {integrity: sha512-IBBb+iI2NLu4VQn3Vwldyi2QwaXt5+hTyh58ggAMoCGE6DJmPvwL3KPBWcJl1m9LYPChBLE980Jw+CS4Wokqxw==}
+    hasBin: true
     dev: true
 
   /abab/2.0.6:
