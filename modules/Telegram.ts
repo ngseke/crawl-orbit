@@ -1,6 +1,6 @@
 import { type Task } from '../types/Task'
 import TelegramBot from 'node-telegram-bot-api'
-import { validateInterval, validateUrl } from './validate'
+import { validateInterval, validateSelector, validateUrl } from './validate'
 import { bold, code, italic, underline } from './html'
 
 type StateType =
@@ -170,11 +170,17 @@ export class Telegram {
         return
       }
 
-      taskDraft.targets.push({ selector: message })
-      await this.sendCurrentTaskDraft(chatId)
+      try {
+        validateSelector(message)
+        taskDraft.targets.push({ selector: message })
+        await this.sendCurrentTaskDraft(chatId)
 
-      state.type = 'addTaskAskTargetMatchString'
-      await this.sendCurrentStateQuestion(chatId)
+        state.type = 'addTaskAskTargetMatchString'
+        await this.sendCurrentStateQuestion(chatId)
+      } catch (err) {
+        await send((err as Error).message)
+      }
+
       return
     }
 
