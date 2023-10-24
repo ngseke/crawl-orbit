@@ -2,6 +2,7 @@ import { type Task } from '../types/Task'
 import TelegramBot from 'node-telegram-bot-api'
 import { validateInterval, validateSelector, validateUrl } from './validate'
 import { bold, code, italic, underline } from './html'
+import { VERSION } from './constants'
 
 type StateType =
   | 'default'
@@ -257,7 +258,8 @@ export class Telegram {
 
     if (state?.type === 'default') {
       lines.push(
-        `  ˗ˏˋ [  ${italic(bold('Crawl Orbit'))}  ] ˎˊ˗`,
+        `  ˗ˏˋ [  ${italic(bold('Crawl Orbit'))}  ] ˎˊ˗  (v${VERSION})`,
+
         '',
         `${bold(Command.Create)} - Create a new task`,
       )
