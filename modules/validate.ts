@@ -1,5 +1,6 @@
 export function validateInterval (value: unknown) {
-  const min = 5000
+  const tenMinuteInMs = 1000 * 60 * 10
+  const min = tenMinuteInMs
   const numericValue = Number(value)
   if (
     Number.isNaN(numericValue) ||
