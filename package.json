@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/jsdom": "^21.1.4",
     "@types/node": "^20.8.7",
+    "@types/node-telegram-bot-api": "^0.61.11",
     "@typescript-eslint/eslint-plugin": "^6.8.0",
     "@typescript-eslint/parser": "^6.8.0",
     "eslint": "^8.52.0",
@@ -37,6 +38,7 @@
     "axios": "^1.5.1",
     "dotenv": "^16.3.1",
     "firebase": "^10.5.0",
-    "jsdom": "^22.1.0"
+    "jsdom": "^22.1.0",
+    "node-telegram-bot-api": "^0.63.0"
   }
 }
