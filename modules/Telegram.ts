@@ -21,6 +21,18 @@ interface Listeners {
   onAddTask?: (id: number, task: Task) => Promise<void>
 }
 
+enum Command {
+  Start = '/start',
+  Create = '/create',
+  Skip = '/skip',
+  Save = '/save',
+  Yes = '/yes',
+  No = '/no',
+  Abort = '/abort',
+  Exit = '/exit',
+  Quit = '/quit'
+}
+
 export class Telegram {
   bot: TelegramBot
   stateMachine = new Map<number, State>()
@@ -96,18 +108,23 @@ export class Telegram {
     const state = this.stateMachine.get(chatId)
     if (!state) throw new Error('should initiate state first!')
 
-    if (['/start', '/abort', '/exit', '/quit'].includes(message)) {
+    if (([
+      Command.Start,
+      Command.Abort,
+      Command.Exit,
+      Command.Quit,
+    ] as string[]).includes(message)) {
       state.type = 'default'
       this.clearTaskDraft(chatId)
       await this.sendCurrentStateQuestion(chatId)
       return
     }
 
-    if (message === '/add') {
+    if (message === Command.Create) {
       state.type = 'addTaskAskName'
       this.clearTaskDraft(chatId)
 
-      await send(`[${italic(`type ${bold('/abort')} to discard the draft and exit.`)}]`)
+      await send(`[${italic(`type ${bold(Command.Abort)} to discard the draft and exit.`)}]`)
       await this.sendCurrentStateQuestion(chatId)
       this.initTaskDraft(chatId)
       return
@@ -160,12 +177,12 @@ export class Telegram {
       if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
 
       taskDraft.targets ??= []
-      if (message === '/targetskip') {
-        send('❔ Do you mean /targetfinish ?')
+      if (message === Command.Skip) {
+        send(`❔ Do you mean ${Command.Save}?`)
         return
       }
 
-      if (message === '/targetfinish') {
+      if (message === Command.Save) {
         await this.handleAddTaskTargetsFinish(chatId)
         return
       }
@@ -190,14 +207,14 @@ export class Telegram {
 
       if (!lastTarget) throw new Error('can\'t find `lastTarget`!')
 
-      if (message === '/targetskip') {
+      if (message === Command.Skip) {
         state.type = 'addTaskAskTarget'
         await this.sendCurrentTaskDraft(chatId)
         await this.sendCurrentStateQuestion(chatId)
         return
       }
 
-      if (message === '/targetfinish') {
+      if (message === Command.Save) {
         await this.handleAddTaskTargetsFinish(chatId)
         return
       }
@@ -212,12 +229,12 @@ export class Telegram {
 
     if (state.type === 'addTaskReview') {
       if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
-      if (message === '/yes') {
+      if (message === Command.Yes) {
         await this.listeners.onAddTask?.(chatId, taskDraft as Task)
         state.type = 'default'
         this.clearTaskDraft(chatId)
         await send('✅ created Successfully!')
-      } else if (message === '/no') {
+      } else if (message === Command.No) {
         state.type = 'default'
         this.clearTaskDraft(chatId)
         await this.sendCurrentStateQuestion(chatId)
@@ -242,7 +259,7 @@ export class Telegram {
       lines.push(
         `  ˗ˏˋ [  ${italic(bold('Crawl Orbit'))}  ] ˎˊ˗`,
         '',
-        `${bold('/add')} - Create a new task`,
+        `${bold(Command.Create)} - Create a new task`,
       )
     }
 
@@ -258,7 +275,7 @@ export class Telegram {
       lines.push('💬 Interval? (in ms)', '')
     }
 
-    const targetFinishTip = `[${italic(`type ${bold('/targetfinish')} to finish`)}]`
+    const targetFinishTip = `[${italic(`type ${bold(Command.Save)} to finish`)}]`
     const blank = underline('___?___')
 
     if (state?.type === 'addTaskAskTarget') {
@@ -277,7 +294,7 @@ export class Telegram {
         ' ┌ Selector: _______',
         ` └ ${bold(`Match String: ${blank}`)} ☚`,
         '',
-        `[${italic(`type ${bold('/targetskip')} to skip`)}]`,
+        `[${italic(`type ${bold(Command.Skip)} to skip`)}]`,
         targetFinishTip
       )
     }
@@ -285,8 +302,8 @@ export class Telegram {
     if (state?.type === 'addTaskReview') {
       lines.push(
         '💬 Confirm to create this task?',
-        `${bold('/yes')}`,
-        `${bold('/no')} - Discard the draft`,
+        `${bold(Command.Yes)}`,
+        `${bold(Command.No)} - Discard the draft`,
       )
     }
 
