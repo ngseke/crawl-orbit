@@ -4,7 +4,7 @@ import { Telegram } from './Telegram'
 import { Database } from './database'
 import { waitForAuthReady } from './firebase'
 import { crawlJsdom } from './crawlJsdom'
-import { type Task } from '../types/Task'
+import { type Task } from './Task'
 
 export class CrawlOrbit {
   schedular = new Schedular()

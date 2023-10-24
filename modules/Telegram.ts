@@ -1,11 +1,12 @@
-import { type Task } from '../types/Task'
+import { taskJsonExample, type Task, validateTaskJson } from './Task'
 import TelegramBot from 'node-telegram-bot-api'
 import { validateInterval, validateSelector, validateUrl } from './validate'
-import { bold, code, italic, underline } from './html'
+import { bold, code, italic, pre, underline } from './html'
 import { VERSION } from './constants'
 
 type StateType =
   | 'default'
+  | 'addTaskJson'
   | 'addTaskAskName'
   | 'addTaskAskUrl'
   | 'addTaskAskTarget'
@@ -25,6 +26,7 @@ interface Listeners {
 enum Command {
   Start = '/start',
   Create = '/create',
+  CreateJson = '/createjson',
   Skip = '/skip',
   Save = '/save',
   Yes = '/yes',
@@ -128,6 +130,29 @@ export class Telegram {
       await send(`[${italic(`type ${bold(Command.Abort)} to discard the draft and exit.`)}]`)
       await this.sendCurrentStateQuestion(chatId)
       this.initTaskDraft(chatId)
+      return
+    }
+
+    if (message === Command.CreateJson) {
+      state.type = 'addTaskJson'
+      this.clearTaskDraft(chatId)
+
+      await send(`[${italic(`type ${bold(Command.Abort)} to discard the draft and exit.`)}]`)
+      await this.sendCurrentStateQuestion(chatId)
+      this.initTaskDraft(chatId)
+      return
+    }
+
+    if (state.type === 'addTaskJson') {
+      try {
+        validateTaskJson(message)
+        state.taskDraft = { ...JSON.parse(message) }
+        await this.sendCurrentTaskDraft(chatId)
+        state.type = 'addTaskReview'
+        await this.sendCurrentStateQuestion(chatId)
+      } catch (err) {
+        await send((err as Error).message)
+      }
       return
     }
 
@@ -261,6 +286,14 @@ export class Telegram {
 
         '',
         `${bold(Command.Create)} - Create a new task`,
+        `${bold(Command.CreateJson)} - Create a new task in JSON format`,
+      )
+    }
+
+    if (state.type === 'addTaskJson') {
+      lines.push(
+        '💬 Please provide your task in JSON format as following:',
+        pre(taskJsonExample)
       )
     }
 

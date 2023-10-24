@@ -1,6 +1,6 @@
 import { ref, set, get, push, child } from 'firebase/database'
 import { firebaseDatabase } from './firebase'
-import { type Task } from '../types/Task'
+import { type Task } from './Task'
 
 export class Database {
   tasksRef = ref(firebaseDatabase, 'tasks')

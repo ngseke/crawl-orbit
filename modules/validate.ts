@@ -1,8 +1,9 @@
 import { JSDOM } from 'jsdom'
 
+const tenMinuteInMs = 1000 * 60 * 10
+export const intervalMinimum = tenMinuteInMs
+
 export function validateInterval (value: unknown) {
-  const tenMinuteInMs = 1000 * 60 * 10
-  const min = tenMinuteInMs
   const numericValue = Number(value)
   if (
     Number.isNaN(numericValue) ||
@@ -12,8 +13,8 @@ export function validateInterval (value: unknown) {
     throw new TypeError('should be a valid positive integer!')
   }
 
-  if (numericValue < min) {
-    throw new TypeError(`should greater than ${min}!`)
+  if (numericValue < intervalMinimum) {
+    throw new TypeError(`should greater than ${intervalMinimum}!`)
   }
 
   return true
