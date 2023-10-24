@@ -15,3 +15,14 @@ export const intervalInlineKeyboard = [
     { text: '1 d', callback_data: minuteToMsString(24 * 60) },
   ],
 ]
+
+export const targetSelectorInlineKeyboard = [
+  [
+    { text: '*', callback_data: '*' },
+    { text: 'div', callback_data: 'div' },
+    { text: 'a', callback_data: 'a' },
+  ],
+  [
+    { text: '💾 Save', callback_data: '/save' },
+  ],
+]

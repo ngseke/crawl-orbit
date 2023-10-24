@@ -3,7 +3,7 @@ import TelegramBot from 'node-telegram-bot-api'
 import { validateInterval, validateSelector, validateUrl } from './validate'
 import { bold, code, italic, pre, underline } from './html'
 import { VERSION } from './constants'
-import { intervalInlineKeyboard } from './keyboard'
+import { intervalInlineKeyboard, targetSelectorInlineKeyboard } from './keyboard'
 
 type StateType =
   | 'default'
@@ -99,14 +99,22 @@ export class Telegram {
     return state
   }
 
-  private async handleAddTaskTargetsFinish (chatId: number) {
+  private getTaskDraft (chatId: number) {
+    const state = this.getState(chatId)
+
+    const { taskDraft } = state
+    if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
+    return taskDraft
+  }
+
+  private async handleSaveTargets (chatId: number) {
     const state = this.getState(chatId)
     if (!state.taskDraft?.targets?.length) {
       await this.sendHtmlMessage(chatId, '🚫 Must have at least 1 target.')
       await this.sendCurrentStateQuestion(chatId)
       return false
     }
-    await this.sendCurrentTaskDraft(chatId)
+    await this.sendCurrentTaskDraftPreview(chatId)
 
     state.type = 'addTaskReview'
     await this.sendCurrentStateQuestion(chatId)
@@ -152,7 +160,7 @@ export class Telegram {
       try {
         validateTaskJson(message)
         state.taskDraft = { ...JSON.parse(message) }
-        await this.sendCurrentTaskDraft(chatId)
+        await this.sendCurrentTaskDraftPreview(chatId)
         state.type = 'addTaskReview'
         await this.sendCurrentStateQuestion(chatId)
       } catch (err) {
@@ -161,12 +169,11 @@ export class Telegram {
       return
     }
 
-    const { taskDraft } = state
+    const taskDraft = this.getTaskDraft(chatId)
 
     if (state.type === 'addTaskAskName') {
-      if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
       taskDraft.name = message
-      await this.sendCurrentTaskDraft(chatId)
+      await this.sendCurrentTaskDraftPreview(chatId)
 
       state.type = 'addTaskAskUrl'
       await this.sendCurrentStateQuestion(chatId)
@@ -174,12 +181,10 @@ export class Telegram {
     }
 
     if (state.type === 'addTaskAskUrl') {
-      if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
-
       try {
         validateUrl(message)
         taskDraft.url = message
-        await this.sendCurrentTaskDraft(chatId)
+        await this.sendCurrentTaskDraftPreview(chatId)
 
         state.type = 'addTaskAskInterval'
         await this.sendCurrentStateQuestion(chatId)
@@ -190,11 +195,10 @@ export class Telegram {
     }
 
     if (state.type === 'addTaskAskInterval') {
-      if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
       try {
         validateInterval(message)
         taskDraft.interval = Number(message)
-        await this.sendCurrentTaskDraft(chatId)
+        await this.sendCurrentTaskDraftPreview(chatId)
 
         state.type = 'addTaskAskTarget'
         await this.sendCurrentStateQuestion(chatId)
@@ -205,23 +209,16 @@ export class Telegram {
     }
 
     if (state.type === 'addTaskAskTarget') {
-      if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
-
       taskDraft.targets ??= []
-      if (message === Command.Skip) {
-        send(`❔ Do you mean ${Command.Save}?`)
-        return
-      }
-
       if (message === Command.Save) {
-        await this.handleAddTaskTargetsFinish(chatId)
+        await this.handleSaveTargets(chatId)
         return
       }
 
       try {
         validateSelector(message)
         taskDraft.targets.push({ selector: message })
-        await this.sendCurrentTaskDraft(chatId)
+        await this.sendCurrentTaskDraftPreview(chatId)
 
         state.type = 'addTaskAskTargetMatchString'
         await this.sendCurrentStateQuestion(chatId)
@@ -233,25 +230,25 @@ export class Telegram {
     }
 
     if (state.type === 'addTaskAskTargetMatchString') {
-      if (!taskDraft?.targets) throw new Error('`taskDraft.targets` should be initiated first!')
+      if (!taskDraft.targets) throw new Error('`taskDraft.targets` should be initiated first!')
       const lastTarget = taskDraft.targets?.at(-1)
 
       if (!lastTarget) throw new Error('can\'t find `lastTarget`!')
 
       if (message === Command.Skip) {
         state.type = 'addTaskAskTarget'
-        await this.sendCurrentTaskDraft(chatId)
+        await this.sendCurrentTaskDraftPreview(chatId)
         await this.sendCurrentStateQuestion(chatId)
         return
       }
 
       if (message === Command.Save) {
-        await this.handleAddTaskTargetsFinish(chatId)
+        await this.handleSaveTargets(chatId)
         return
       }
 
       lastTarget.matchString = message
-      await this.sendCurrentTaskDraft(chatId)
+      await this.sendCurrentTaskDraftPreview(chatId)
 
       state.type = 'addTaskAskTarget'
       await this.sendCurrentStateQuestion(chatId)
@@ -259,7 +256,6 @@ export class Telegram {
     }
 
     if (state.type === 'addTaskReview') {
-      if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
       if (message === Command.Yes) {
         await this.listeners.onAddTask?.(chatId, taskDraft as Task)
         state.type = 'default'
@@ -288,18 +284,35 @@ export class Telegram {
 
     const send = (message: string) => this.sendHtmlMessage(chatId, message)
     const state = this.getState(chatId)
-    const { taskDraft } = state
+    const taskDraft = this.getTaskDraft(chatId)
 
     if (state.type === 'addTaskAskInterval') {
-      if (!taskDraft) {
-        return await send('`taskDraft` not found')
-      }
       try {
         validateInterval(data)
         taskDraft.interval = Number(data)
-        await this.sendCurrentTaskDraft(chatId)
+        await this.sendCurrentTaskDraftPreview(chatId)
 
         state.type = 'addTaskAskTarget'
+        await this.sendCurrentStateQuestion(chatId)
+      } catch (err) {
+        await send((err as Error).message)
+      }
+      return
+    }
+
+    if (state.type === 'addTaskAskTarget') {
+      taskDraft.targets ??= []
+      if (data === Command.Save) {
+        await this.handleSaveTargets(chatId)
+        return
+      }
+
+      try {
+        validateSelector(data)
+        taskDraft.targets.push({ selector: data })
+        await this.sendCurrentTaskDraftPreview(chatId)
+
+        state.type = 'addTaskAskTargetMatchString'
         await this.sendCurrentStateQuestion(chatId)
       } catch (err) {
         await send((err as Error).message)
@@ -348,13 +361,20 @@ export class Telegram {
     const blank = underline('___?___')
 
     if (state.type === 'addTaskAskTarget') {
-      lines.push(
+      const message = [
         '💬 Target?',
         ` ┌ ${bold(`Selector: ${blank}`)} ☚`,
         ' └ Match String: _______',
         '',
-        targetFinishTip
-      )
+      ].join('\n')
+
+      await this.bot.sendMessage(chatId, message, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: targetSelectorInlineKeyboard,
+        },
+      })
+      return
     }
 
     if (state.type === 'addTaskAskTargetMatchString') {
@@ -379,7 +399,7 @@ export class Telegram {
     await this.sendHtmlMessage(chatId, lines.join('\n'))
   }
 
-  async sendCurrentTaskDraft (chatId: number) {
+  async sendCurrentTaskDraftPreview (chatId: number) {
     const send = (message: string) => this.sendHtmlMessage(chatId, message)
     const state = this.stateMachine.get(chatId)
 
