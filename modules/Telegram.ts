@@ -71,28 +71,30 @@ export class Telegram {
     await this.sendHtmlMessage(chatId, lines.join('\n'))
   }
 
-  ensureState (chatId: number) {
-    if (!this.stateMachine.has(chatId)) {
-      this.stateMachine.set(chatId, { type: 'default' })
-    }
-  }
-
   private clearTaskDraft (chatId: number) {
-    this.ensureState(chatId)
-    const state = this.stateMachine.get(chatId)
-    delete state?.taskDraft
+    const state = this.getState(chatId)
+    delete state.taskDraft
   }
 
   private initTaskDraft (chatId: number) {
-    this.ensureState(chatId)
-    const state = this.stateMachine.get(chatId)
-    if (!state) throw new Error('should initiate state first!')
+    const state = this.getState(chatId)
     state.taskDraft = {}
   }
 
+  private getState (chatId: number) {
+    const { stateMachine } = this
+    if (!stateMachine.has(chatId)) {
+      stateMachine.set(chatId, { type: 'default' })
+    }
+
+    const state = stateMachine.get(chatId)
+    if (!state) throw new Error('`state` should be initiate first!')
+    return state
+  }
+
   private async handleAddTaskTargetsFinish (chatId: number) {
-    const state = this.stateMachine.get(chatId)
-    if (!state?.taskDraft?.targets?.length) {
+    const state = this.getState(chatId)
+    if (!state.taskDraft?.targets?.length) {
       await this.sendHtmlMessage(chatId, '🚫 Must have at least 1 target.')
       await this.sendCurrentStateQuestion(chatId)
       return false
@@ -105,9 +107,7 @@ export class Telegram {
 
   private async handleMessage (chatId: number, message: string) {
     const send = (message: string) => this.sendHtmlMessage(chatId, message)
-    this.ensureState(chatId)
-    const state = this.stateMachine.get(chatId)
-    if (!state) throw new Error('should initiate state first!')
+    const state = this.getState(chatId)
 
     if (([
       Command.Start,
@@ -252,11 +252,10 @@ export class Telegram {
   }
 
   async sendCurrentStateQuestion (chatId: number) {
-    this.ensureState(chatId)
-    const state = this.stateMachine.get(chatId)
+    const state = this.getState(chatId)
     const lines: string[] = []
 
-    if (state?.type === 'default') {
+    if (state.type === 'default') {
       lines.push(
         `  ˗ˏˋ [  ${italic(bold('Crawl Orbit'))}  ] ˎˊ˗  (v${VERSION})`,
 
@@ -265,22 +264,22 @@ export class Telegram {
       )
     }
 
-    if (state?.type === 'addTaskAskName') {
+    if (state.type === 'addTaskAskName') {
       lines.push('💬 Name?', '')
     }
 
-    if (state?.type === 'addTaskAskUrl') {
+    if (state.type === 'addTaskAskUrl') {
       lines.push('💬 URL?', '')
     }
 
-    if (state?.type === 'addTaskAskInterval') {
+    if (state.type === 'addTaskAskInterval') {
       lines.push('💬 Interval? (in ms)', '')
     }
 
     const targetFinishTip = `[${italic(`type ${bold(Command.Save)} to finish`)}]`
     const blank = underline('___?___')
 
-    if (state?.type === 'addTaskAskTarget') {
+    if (state.type === 'addTaskAskTarget') {
       lines.push(
         '💬 Target?',
         ` ┌ ${bold(`Selector: ${blank}`)} ☚`,
@@ -290,7 +289,7 @@ export class Telegram {
       )
     }
 
-    if (state?.type === 'addTaskAskTargetMatchString') {
+    if (state.type === 'addTaskAskTargetMatchString') {
       lines.push(
         '💬 Target?',
         ' ┌ Selector: _______',
@@ -301,7 +300,7 @@ export class Telegram {
       )
     }
 
-    if (state?.type === 'addTaskReview') {
+    if (state.type === 'addTaskReview') {
       lines.push(
         '💬 Confirm to create this task?',
         `${bold(Command.Yes)}`,
