@@ -211,7 +211,6 @@ export class Telegram {
         state.type = 'default'
         this.clearTaskDraft(chatId)
         await send('✅ created Successfully!')
-        await this.sendCurrentStateQuestion(chatId)
       } else if (message === '/no') {
         state.type = 'default'
         this.clearTaskDraft(chatId)
