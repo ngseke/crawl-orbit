@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "dev": "ts-node-dev index.ts",
+    "dev": "ts-node-dev --respawn index.ts",
     "build": "rm -rf dist && ncc build index.ts -s -m -o dist",
     "start": "node dist/index",
     "lint": "tsc --noEmit && npx eslint . --ext .ts,.js,.cjs",
