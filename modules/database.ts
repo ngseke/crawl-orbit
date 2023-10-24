@@ -12,7 +12,7 @@ export class Database {
   }
 
   async removeTask (id: number, taskKey: string) {
-    const ref = child(this.tasksRef, String(id))
+    const ref = child(child(this.tasksRef, String(id)), taskKey)
     await set(ref, null)
   }
 
