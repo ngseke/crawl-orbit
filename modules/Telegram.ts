@@ -80,7 +80,7 @@ export class Telegram {
 
   private clearTaskDraft (chatId: number) {
     const state = this.getState(chatId)
-    delete state.taskDraft
+    state.taskDraft = {}
   }
 
   private initTaskDraft (chatId: number) {
@@ -101,7 +101,7 @@ export class Telegram {
 
   private getTaskDraft (chatId: number) {
     const state = this.getState(chatId)
-
+    state.taskDraft ??= {}
     const { taskDraft } = state
     if (!taskDraft) throw new Error('`taskDraft` should be initiated first!')
     return taskDraft
