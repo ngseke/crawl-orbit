@@ -1,0 +1,13 @@
+[Unit]
+Description=Crawl Orbit
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/bin/docker run --pull=always --rm --env-file /home/pi/.crawl-orbit.env -- ngseke/crawl-orbit:latest
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
