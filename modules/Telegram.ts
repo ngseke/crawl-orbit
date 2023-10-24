@@ -3,6 +3,7 @@ import TelegramBot from 'node-telegram-bot-api'
 import { validateInterval, validateSelector, validateUrl } from './validate'
 import { bold, code, italic, pre, underline } from './html'
 import { VERSION } from './constants'
+import { intervalInlineKeyboard } from './keyboard'
 
 type StateType =
   | 'default'
@@ -54,6 +55,10 @@ export class Telegram {
       const chatId = message.chat.id
       const text = message.text?.trim() ?? ''
       this.handleMessage(chatId, text)
+    })
+
+    bot.on('callback_query', async (query) => {
+      this.handleQuery(query)
     })
   }
 
@@ -276,6 +281,32 @@ export class Telegram {
     await this.sendCurrentStateQuestion(chatId)
   }
 
+  private async handleQuery (query: TelegramBot.CallbackQuery) {
+    const chatId = query.message?.chat.id ?? 0
+    const data = query.data ?? ''
+    await this.bot.answerCallbackQuery(query.id)
+
+    const send = (message: string) => this.sendHtmlMessage(chatId, message)
+    const state = this.getState(chatId)
+    const { taskDraft } = state
+
+    if (state.type === 'addTaskAskInterval') {
+      if (!taskDraft) {
+        return await send('`taskDraft` not found')
+      }
+      try {
+        validateInterval(data)
+        taskDraft.interval = Number(data)
+        await this.sendCurrentTaskDraft(chatId)
+
+        state.type = 'addTaskAskTarget'
+        await this.sendCurrentStateQuestion(chatId)
+      } catch (err) {
+        await send((err as Error).message)
+      }
+    }
+  }
+
   async sendCurrentStateQuestion (chatId: number) {
     const state = this.getState(chatId)
     const lines: string[] = []
@@ -283,7 +314,6 @@ export class Telegram {
     if (state.type === 'default') {
       lines.push(
         `  ˗ˏˋ [  ${italic(bold('Crawl Orbit'))}  ] ˎˊ˗  (v${VERSION})`,
-
         '',
         `${bold(Command.Create)} - Create a new task`,
         `${bold(Command.CreateJson)} - Create a new task in JSON format`,
@@ -306,7 +336,12 @@ export class Telegram {
     }
 
     if (state.type === 'addTaskAskInterval') {
-      lines.push('💬 Interval? (in ms)', '')
+      await this.bot.sendMessage(chatId, '💬 Interval? (in ms)', {
+        reply_markup: {
+          inline_keyboard: intervalInlineKeyboard,
+        },
+      })
+      return
     }
 
     const targetFinishTip = `[${italic(`type ${bold(Command.Save)} to finish`)}]`
