@@ -19,15 +19,18 @@ export class CrawlOrbit {
 
   generateJob (chatId: number, taskKey: string, task: Task) {
     const job = async () => {
-      const { isMatched } = await crawlJsdom({
-        url: task.url,
-        targets: task.targets,
-      })
-
-      if (isMatched) {
-        await this.telegram.sendMatchedMessage(chatId, task)
-        this.schedular.removeSchedule(chatId, taskKey)
-        this.database.removeTask(chatId, taskKey)
+      try {
+        const { isMatched } = await crawlJsdom({
+          url: task.url,
+          targets: task.targets,
+        })
+        if (isMatched) {
+          await this.telegram.sendMatchedMessage(chatId, task)
+          this.schedular.removeSchedule(chatId, taskKey)
+          this.database.removeTask(chatId, taskKey)
+        }
+      } catch (err) {
+        console.error(err)
       }
     }
 
